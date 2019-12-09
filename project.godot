@@ -19,6 +19,10 @@ config/name="gdt-SideScroller"
 run/main_scene="res://World.tscn"
 config/icon="res://icon.png"
 
+[display]
+
+window/size/height=608
+
 [input]
 
 ui_left={
