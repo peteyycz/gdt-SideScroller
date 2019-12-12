@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=2]
+
+[ext_resource path="res://MapTileset.png" type="Texture" id=1]
+
+[sub_resource type="CanvasItemMaterial" id=1]
+particles_animation = true
+particles_anim_h_frames = 20
+particles_anim_v_frames = 20
+particles_anim_loop = true
+
+[sub_resource type="ParticlesMaterial" id=2]
+emission_shape = 2
+emission_box_extents = Vector3( 10, 10, 1 )
+flag_disable_z = true
+spread = 180.0
+gravity = Vector3( 0, 100, 0 )
+initial_velocity = 59.53
+orbit_velocity = 0.0
+orbit_velocity_random = 0.0
+anim_speed = 1.0
+
+[node name="BricksParticle" type="Particles2D"]
+material = SubResource( 1 )
+emitting = false
+amount = 50
+one_shot = true
+explosiveness = 1.0
+process_material = SubResource( 2 )
+texture = ExtResource( 1 )

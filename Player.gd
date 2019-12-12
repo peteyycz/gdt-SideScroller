@@ -11,6 +11,9 @@ var maxJumpCount = 1
 var jumpCount = 0
 var deltaTime = 0
 var landed
+var power = 0
+var isInvincible = false
+var invincibilityDelta = 0
 
 # Constants
 const MAX_SPEED = 300
@@ -18,10 +21,13 @@ const MOV_MULTI = 800
 const JUMP_FORCE = 350
 const GRAVITY = 800
 const UP = Vector2(0, -1)
+const bricksParticle = preload('res://BricksParticle.tscn')
+const Powerup = preload('res://Powerup.tscn')
+const PowerupBox = preload('res://PowerupBox.tscn')
 
 func _ready():
 	sprite = get_node("Sprite")
-	
+
 func _animatePlayerMovement():
 	if sprite.get('frame') > 2:
 		sprite.set('frame', 0)
@@ -29,6 +35,18 @@ func _animatePlayerMovement():
 	deltaTime = 0
 
 func _physics_process(delta):
+	if isInvincible:
+		sprite.set('opacity', 0)
+		invincibilityDelta += delta
+		if invincibilityDelta > 0.05:
+			if sprite.get('visible'):
+				sprite.set('visible', false)
+			else:
+				sprite.set('visible', true)				
+		if invincibilityDelta > 1:
+			invincibilityDelta = 0
+			isInvincible = false
+			sprite.set('visible', true)
 	if is_on_floor():
 		if !landed:
 			sprite.set('frame', 0)
@@ -67,10 +85,52 @@ func _physics_process(delta):
 		speedX += MOV_MULTI * delta
 		movementDirection = facingDirection
 	else:
-		speedX -= MOV_MULTI * 0.5 * delta
+		speedX -= MOV_MULTI * 1.5 * delta
 
 	speedX = clamp(speedX, 0, MAX_SPEED)
 	velocity.x = speedX * movementDirection
 	velocity.y = speedY
 
 	move_and_slide(velocity, Vector2(0, -1))
+	for i in get_slide_count():
+		var collision = get_slide_collision(i)
+		if collision.normal == Vector2(0, 1):
+			var obj = collision.collider
+			var objParent = obj.get_parent()
+			if power > 0 and objParent.is_in_group("Bricks"):
+				objParent.queue_free()
+				speedY = 0
+				var particleEffect = bricksParticle.instance()
+				particleEffect.get_node(".").set("emitting", true)
+				particleEffect.set('position', get('position') - Vector2(0, 20))
+				get_tree().root.add_child(particleEffect)
+			elif objParent.is_in_group("PowerupBricks"):
+				var powerupBox = PowerupBox.instance()
+				powerupBox.set('position', objParent.get('position'))
+				objParent.queue_free()
+				get_tree().root.add_child(powerupBox)
+				var powerup = Powerup.instance()
+				powerup.set("position", get('position') - Vector2(0, 64))
+				powerup.add_to_group("Powerup")
+				get_tree().root.add_child(powerup)
+
+	var area = get_node("Area2D").get_overlapping_bodies()
+	if area.size() != 0:
+		for body in area:
+			if body.is_in_group("Powerup"):
+				power = 1
+				body.queue_free()
+				sprite.set('modulate', Color("#5d6dff"))
+			elif body.is_in_group("Pits"):
+				get_tree().reload_current_scene()
+			elif body.is_in_group("Enemies"):
+				if body.get('position').y > get('position').y + 10:
+					body.get_node("CollisionShape2D").set('disabled', true)
+				else:
+					if !isInvincible:
+						isInvincible = true
+						power -= 1
+						if power < 0:
+							get_tree().reload_current_scene()
+						else:
+							sprite.set('modulate', Color("#ffffff"))
